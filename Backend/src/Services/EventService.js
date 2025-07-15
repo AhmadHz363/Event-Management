@@ -134,7 +134,7 @@ class EventService {
       if (error.code === Parse.Error.OBJECT_NOT_FOUND) {
         return {
           success: false,
-          error: "User not found",
+          error: "Event not found",
           code: 404,
         };
       }
@@ -155,7 +155,7 @@ class EventService {
     if (!response.success || !response.data) {
       return {
         success: false,
-        error: "User not found",
+        error: "Event not found",
         code: 404,
       };
     }
@@ -208,7 +208,7 @@ async delete(eventId) {
     if (!response.success || !response.data) {
       return {
         success: false,
-        error: 'User not found',
+        error: 'Event not found',
         code: 404
       };
     }

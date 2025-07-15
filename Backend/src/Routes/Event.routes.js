@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const EventService = require('../Services/EventService');
+const verifyToken = require('../Middlewares/authMiddleware');
+const authorizeRoles = require('../Middlewares/roleMiddleware');
+const UserRoles= require("../Models/enums/UserRoles");
 
+router.use(verifyToken);
 // Create new event
-router.post('/', async (req, res) => {
+router.post('/',authorizeRoles([UserRoles.ADMIN, UserRoles.ORGANIZER]), async (req, res) => {
   try {
     const event = await EventService.create(req.body);
     res.status(201).json(event);
@@ -13,7 +17,7 @@ router.post('/', async (req, res) => {
 });
 
 
-router.get('/', async (req, res) => {
+router.get('/',authorizeRoles([UserRoles.ADMIN, UserRoles.ORGANIZER]),  async (req, res) => {
   try {
     // Extract query params with defaults
     const {
@@ -55,7 +59,7 @@ router.get('/', async (req, res) => {
 
 
 // Get event by id
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeRoles([UserRoles.ADMIN, UserRoles.ORGANIZER]), async (req, res) => {
   try {
     const event = await EventService.getById(req.params.id);
     res.json(event);
@@ -65,7 +69,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update event by id
-router.put('/:id', async (req, res) => {
+router.put('/:id',authorizeRoles([UserRoles.ADMIN, UserRoles.ORGANIZER]),  async (req, res) => {
   try {
     const updatedEvent = await EventService.update(req.params.id, req.body);
     res.json(updatedEvent);
@@ -75,7 +79,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete event by id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',authorizeRoles([UserRoles.ADMIN, UserRoles.ORGANIZER]),  async (req, res) => {
   try {
     const deleteEvent= await EventService.delete(req.params.id);
     res.json(deleteEvent);

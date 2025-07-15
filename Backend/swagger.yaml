@@ -8,6 +8,9 @@ servers:
   - url: /api/v1
     description: Main API server
 
+security:
+  - bearerAuth: []
+
 paths:
   # User APIs
   /users:
@@ -16,6 +19,8 @@ paths:
         - Users
       summary: Create a new user
       description: Register a new user account
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -41,6 +46,8 @@ paths:
         - Users
       summary: Get all users
       description: Retrieve a paginated list of all users with optional filtering
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/limit'
@@ -87,6 +94,8 @@ paths:
         - Users
       summary: Get user by ID
       description: Retrieve details of a specific user
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/userId'
       responses:
@@ -108,6 +117,8 @@ paths:
         - Users
       summary: Update user by ID
       description: Update details of an existing user
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/userId'
       requestBody:
@@ -141,6 +152,8 @@ paths:
         - Users
       summary: Delete user by ID
       description: Permanently delete a user account
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/userId'
       responses:
@@ -159,6 +172,77 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /users/login:
+    post:
+      tags:
+        - Users
+      summary: Login user and return JWT token
+      description: Authenticates a user using username and password, and returns a JWT token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: adminUser
+                password:
+                  type: string
+                  format: password
+                  example: securePassword123
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login successful
+                  token:
+                    type: string
+                    description: JWT token
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: abc123
+                      username:
+                        type: string
+                        example: adminUser
+                      email:
+                        type: string
+                        example: admin@example.com
+                      role:
+                        type: string
+                        example: admin
+        '400':
+          description: Missing username or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # Event APIs
   /events:
     post:
@@ -166,6 +250,8 @@ paths:
         - Events
       summary: Create a new event
       description: Creates an event with a title, organizer, and other fields.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -191,6 +277,8 @@ paths:
         - Events
       summary: Get all events
       description: Retrieve a paginated and filterable list of events
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/limit'
@@ -245,6 +333,8 @@ paths:
       tags:
         - Events
       summary: Get event by ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/eventId'
       responses:
@@ -265,6 +355,8 @@ paths:
       tags:
         - Events
       summary: Update event by ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/eventId'
       requestBody:
@@ -291,6 +383,8 @@ paths:
       tags:
         - Events
       summary: Delete event by ID
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/eventId'
       responses:
@@ -303,6 +397,333 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # Registration APIs
+  /registrations:
+    post:
+      tags:
+        - Registrations
+      summary: Create a new registration
+      description: Registers a user for an event.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user
+                - event
+              properties:
+                user:
+                  type: string
+                  description: ID of the user (pointer to _User)
+                  example: "abc123userId"
+                event:
+                  type: string
+                  description: ID of the event (pointer to Event)
+                  example: "xyz789eventId"
+                status:
+                  type: string
+                  enum: [pending, confirmed, cancelled]
+                  description: Registration status (optional, defaults to pending)
+                  example: "pending"
+                registeredAt:
+                  type: string
+                  format: date-time
+                  description: Date and time of registration (optional)
+                  example: "2025-07-15T10:00:00Z"
+      responses:
+        '201':
+          description: Registration created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          description: Validation error or missing required fields
+        '409':
+          description: Duplicate registration
+
+    get:
+      tags:
+        - Registrations
+      summary: Get a list of registrations
+      description: Retrieve a paginated list of registrations with optional filters and sorting.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sortBy'
+        - $ref: '#/components/parameters/sortOrder'
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by user ID
+        - name: eventId
+          in: query
+          schema:
+            type: string
+          description: Filter by event ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled]
+          description: Filter by registration status
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by registeredAt >= fromDate
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by registeredAt <= toDate
+      responses:
+        '200':
+          description: A list of registrations matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RegistrationResponse'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        example: 42
+        '400':
+          description: Bad request
+
+  /registrations/{id}:
+    get:
+      tags:
+        - Registrations
+      summary: Get a registration by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Registration ID
+      responses:
+        '200':
+          description: Registration fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '404':
+          description: Registration not found
+
+    put:
+      tags:
+        - Registrations
+      summary: Update a registration by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Registration ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: string
+                  description: Updated user ID
+                  example: "abc123userId"
+                event:
+                  type: string
+                  description: Updated event ID
+                  example: "xyz789eventId"
+                status:
+                  type: string
+                  enum: [pending, confirmed, cancelled]
+                  description: Updated registration status
+                  example: "confirmed"
+                registeredAt:
+                  type: string
+                  format: date-time
+                  description: Updated registration timestamp
+                  example: "2025-07-15T10:00:00Z"
+      responses:
+        '200':
+          description: Registration updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          description: Validation error
+        '404':
+          description: Registration not found
+
+    delete:
+      tags:
+        - Registrations
+      summary: Delete a registration by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Registration ID
+      responses:
+        '204':
+          description: Registration deleted successfully
+        '404':
+          description: Registration not found
+  # Event statistc API's
+  /statistics/events/count:
+    get:
+      tags:
+        - Statistics
+      summary: Get total number of events
+      description: Returns the total count of events in the system.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEvents:
+                    type: integer
+                    example: 42
+        '500':
+          description: Internal Server Error
+
+  /statistics/events/status:
+    get:
+      tags:
+        - Statistics
+      summary: Get count of events by status
+      description: Returns event counts grouped by status (e.g., active, completed).
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  active: 10
+                  canceled: 5
+                  completed: 15
+                  scheduled: 12
+        '500':
+          description: Internal Server Error
+
+  /statistics/registrations/trends:
+    get:
+      tags:
+        - Statistics
+      summary: Get registration trends
+      description: Returns number of registrations per day between given dates.
+      parameters:
+        - name: fromDate
+          in: query
+          description: Start date in ISO format (e.g., 2024-01-01)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          description: End date in ISO format (e.g., 2024-12-31)
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    date:
+                      type: string
+                      example: 2024-05-01
+                    registrations:
+                      type: integer
+                      example: 12
+        '500':
+          description: Internal Server Error
+
+  /statistics/events/popular:
+    get:
+      tags:
+        - Statistics
+      summary: Get most popular events
+      description: Returns events with the highest number of registrations.
+      parameters:
+        - name: limit
+          in: query
+          description: Number of top events to return (default is 5)
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    eventId:
+                      type: string
+                      example: "abc123"
+                    title:
+                      type: string
+                      example: "Summer Tech Meetup"
+                    registrations:
+                      type: integer
+                      example: 89
+        '500':
+          description: Internal Server Error
 components:
   parameters:
     userId:
@@ -313,6 +734,7 @@ components:
       schema:
         type: string
         example: xWMyZ4YEGZ
+
     eventId:
       name: id
       in: path
@@ -321,6 +743,7 @@ components:
       schema:
         type: string
         example: e1234567890
+
     page:
       name: page
       in: query
@@ -329,6 +752,7 @@ components:
         type: integer
         default: 1
         minimum: 1
+
     limit:
       name: limit
       in: query
@@ -338,6 +762,7 @@ components:
         default: 10
         minimum: 1
         maximum: 100
+
     sortBy:
       name: sortBy
       in: query
@@ -346,6 +771,7 @@ components:
         type: string
         enum: [createdAt, updatedAt, username, email]
         default: createdAt
+
     sortOrder:
       name: sortOrder
       in: query
@@ -358,7 +784,10 @@ components:
   schemas:
     UserCreate:
       type: object
-      required: [username, email, password]
+      required:
+        - username
+        - email
+        - password
       properties:
         username:
           type: string
@@ -522,9 +951,321 @@ components:
           type: string
           format: date-time
 
+    RegistrationResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+          example: "abc123xyz"
+        user:
+          type: object
+          description: Pointer to user object
+          example:
+            objectId: "abc123userId"
+            className: "_User"
+        event:
+          type: object
+          description: Pointer to event object
+          example:
+            objectId: "xyz789eventId"
+            className: "Event"
+        status:
+          type: string
+          example: pending
+        registeredAt:
+          type: string
+          format: date-time
+          example: "2025-07-15T10:00:00Z"
+
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
           example: Error message describing the issue
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid username or password
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+components:
+  parameters:
+    userId:
+      name: id
+      in: path
+      required: true
+      description: ID of the user
+      schema:
+        type: string
+        example: xWMyZ4YEGZ
+
+    eventId:
+      name: id
+      in: path
+      required: true
+      description: ID of the event
+      schema:
+        type: string
+        example: e1234567890
+
+    page:
+      name: page
+      in: query
+      description: Page number
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+
+    limit:
+      name: limit
+      in: query
+      description: Items per page
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+
+    sortBy:
+      name: sortBy
+      in: query
+      description: Sort by field
+      schema:
+        type: string
+        enum: [createdAt, updatedAt, username, email]
+        default: createdAt
+
+    sortOrder:
+      name: sortOrder
+      in: query
+      description: Sort direction
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    UserCreate:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: securePassword123
+        role:
+          type: string
+          enum: [Admin, Organizer, Participant]
+          default: Participant
+        profile:
+          type: object
+          properties:
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+        status:
+          type: string
+          default: active
+
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [Admin, Organizer, Participant]
+        profile:
+          type: object
+          properties:
+            firstName:
+              type: string
+            lastName:
+              type: string
+
+    UserResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        profile:
+          type: object
+          properties:
+            firstName:
+              type: string
+            lastName:
+              type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    EventCreate:
+      type: object
+      required:
+        - title
+        - description
+        - location
+        - startDate
+        - endDate
+        - maxParticipants
+        - eventType
+        - status
+        - organizer
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        maxParticipants:
+          type: integer
+        eventType:
+          type: string
+        status:
+          type: string
+        organizer:
+          type: string
+          description: ID of the user organizing the event
+
+    Event:
+      type: object
+      properties:
+        objectId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        maxParticipants:
+          type: integer
+        eventType:
+          type: string
+        status:
+          type: string
+        organizer:
+          type: object
+          properties:
+            objectId:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RegistrationResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+          example: "abc123xyz"
+        user:
+          type: object
+          description: Pointer to user object
+          example:
+            objectId: "abc123userId"
+            className: "_User"
+        event:
+          type: object
+          description: Pointer to event object
+          example:
+            objectId: "xyz789eventId"
+            className: "Event"
+        status:
+          type: string
+          example: pending
+        registeredAt:
+          type: string
+          format: date-time
+          example: "2025-07-15T10:00:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Error message describing the issue
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid username or password
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -3,9 +3,32 @@ const router = express.Router();
 const UserService = require("../Services/UserServices");
 const UserStatus= require("../Models/enums/UserStatus");
 const UserRoles= require("../Models/enums/UserRoles");
+const verifyToken = require('../Middlewares/authMiddleware');
+const authorizeRoles = require('../Middlewares/roleMiddleware');
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
 
-// Create new user (sign up)
-router.post("/", async (req, res) => {
+  // Basic validation
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required." });
+  }
+  const response = await UserService.login({ username, password });
+  if (!response.success) {
+    return res.status(response.code).json({ error: response.error });
+  }
+  // Return token and user data
+  res.status(200).json({
+    message: "Login successful",
+    token: response.token,
+    user: response.user
+  });
+});
+//apply middleware jwt auth
+
+const protectedRouter = express.Router();
+protectedRouter.use(verifyToken);
+
+protectedRouter.post("/", async (req, res) => {
   const { username, email, password, role, status, profile } = req.body;
 
   if (!username || !email || !password) {
@@ -41,7 +64,7 @@ router.post("/", async (req, res) => {
   }
 });
 //get all users
-router.get('/', async (req, res) => {
+protectedRouter.get('/',authorizeRoles(UserRoles.ADMIN),async (req, res) => {
   try {
     const user = await UserService.getAll();
     res.json(user);
@@ -52,7 +75,7 @@ router.get('/', async (req, res) => {
 
 
 // Get user by id
-router.get('/:id', async (req, res) => {
+protectedRouter.get('/:id',authorizeRoles(UserRoles.ADMIN), async (req, res) => {
   try {
     const id = req.params.id;
     const user = await UserService.getById(id);
@@ -65,7 +88,7 @@ router.get('/:id', async (req, res) => {
 
 
 // Update user by id
-router.put("/:id", async (req, res) => {
+protectedRouter.put("/:id" ,authorizeRoles(UserRoles.ADMIN),async (req, res) => {
   try {
     const updatedUser = await UserService.update(req.params.id, req.body);
     res.json(updatedUser);
@@ -75,23 +98,14 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete user by id
-router.delete("/:id", async (req, res) => {
+protectedRouter.delete("/:id",authorizeRoles(UserRoles.ADMIN), async (req, res) => {
   try {
-    await UserService.delete(req.params.id);
-    res.status(204).send();
+    const deleteUser=  await UserService.delete(req.params.id);
+    res.send(deleteUser);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-router.get("/test", async (req, res) => {
-  try {
-    // const user = await UserService.create(req.body);
-    // res.status(201).json(user);
-    res.status(200).json({ message: "test test" });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
 
 module.exports = router;

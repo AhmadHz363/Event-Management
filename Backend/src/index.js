@@ -21,10 +21,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // API routes
 const userRoutes = require('./Routes/User.routes');
 const eventRoutes = require('./Routes/Event.routes');
+const registrationRoutes = require('./Routes/Registration.routes');
+const eventStatistics= require('./Routes/EventStatistic.routes');
 
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/events', eventRoutes);
-
+app.use('/api/v1/registrations', registrationRoutes);
+app.use('/api/v1/statistics', eventStatistics);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
