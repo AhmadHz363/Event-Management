@@ -1,6 +1,4 @@
 # Environment files
-.env
-.env.*              # e.g. .env.development, .env.test
 
 # Node modules
 node_modules/
