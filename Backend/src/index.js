@@ -1,9 +1,9 @@
 const express = require('express');
 require('dotenv').config();
-
+const cors = require('cors');
 const Parse = require('./Config/parseConfig');
 const app = express();
-
+const bodyParser = require('body-parser');
 // swagger config
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
@@ -12,7 +12,12 @@ const path = require('path');
 // Load swagger yaml file
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 
+//to handle the image 
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
 // Middleware to parse JSON body
+app.use(cors());
 app.use(express.json());
 
 // Serve swagger docs at /api-docs

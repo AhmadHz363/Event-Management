@@ -2,6 +2,7 @@ const Event = require("../Models/Event");
 const Parse = require("../Config/parseConfig");
 const User = require("../Models/User");
 const EventStatus = require("../Models/enums/EventStatus");
+const UserService = require("./UserServices");
 class EventService {
   async create(data) {
     const event = new Event();
@@ -11,11 +12,9 @@ class EventService {
       throw new Error("Organizer is required");
     }
 
-    // Create pointer to User
     const organizerPointer = new User();
-    organizerPointer.id = data.organizer; // assuming data.organizer is the User objectId
+    organizerPointer.id = data.organizer;
 
-    // List of allowed fields (including organizer pointer)
     const allowedFields = [
       "title",
       "description",
@@ -27,10 +26,8 @@ class EventService {
       "status",
     ];
 
-    // Set organizer pointer explicitly
     event.set("organizer", organizerPointer);
 
-    // Set default status if not provided
     if (!data.status) {
       data.status = EventStatus.SCHEDULED;
     }
@@ -38,8 +35,6 @@ class EventService {
     allowedFields.forEach((key) => {
       if (data[key] !== undefined) {
         let value = data[key];
-
-        // Convert date strings to Date objects if needed
         if (
           (key === "startDate" || key === "endDate") &&
           typeof value === "string"
@@ -50,7 +45,17 @@ class EventService {
         event.set(key, value);
       }
     });
-
+    // Handle image upload
+    if (data.imageFile) {
+      try {
+        const file = new Parse.File(data.imageFile.name, {
+          base64: data.imageFile.base64,
+        });
+        event.set("image", file);
+      } catch (e) {
+        throw new Error("Image upload failed: " + e.message);
+      }
+    }
     return await event.save(null, { useMasterKey: true });
   }
 
@@ -201,34 +206,33 @@ class EventService {
     return await event.save(null, { useMasterKey: true });
   }
 
-async delete(eventId) {
-  try {
-    const query = new Parse.Query(Event);
-    const response = await this.getById(eventId);
-    if (!response.success || !response.data) {
+  async delete(eventId) {
+    try {
+      const query = new Parse.Query(Event);
+      const response = await this.getById(eventId);
+      if (!response.success || !response.data) {
+        return {
+          success: false,
+          error: "Event not found",
+          code: 404,
+        };
+      }
+
+      const event = response.data;
+      await event.destroy({ useMasterKey: true });
+
+      return {
+        success: true,
+        message: "Event deleted successfully",
+      };
+    } catch (error) {
       return {
         success: false,
-        error: 'Event not found',
-        code: 404
+        error: error.message,
+        code: 400,
       };
     }
-
-    const event = response.data;
-    await event.destroy({ useMasterKey: true });
-
-    return {
-      success: true,
-      message: "Event deleted successfully",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      code: 400,
-    };
   }
-}
-
 }
 
 module.exports = new EventService();
