@@ -804,16 +804,7 @@ components:
           type: string
           enum: [Admin, Organizer, Participant]
           default: Participant
-        profile:
-          type: object
-          properties:
-            firstName:
-              type: string
-              example: John
-            lastName:
-              type: string
-              example: Doe
-        status:
+      status:
           type: string
           default: active
 
