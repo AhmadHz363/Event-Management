@@ -1,0 +1,2 @@
+C:/Users/hsnkz/Desktop/Smart-Attendance-App/Mobile-App/android/app/.cxx/Debug/321u2l43/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/hsnkz/Desktop/Smart-Attendance-App/Mobile-App/android/app/.cxx/Debug/321u2l43/armeabi-v7a/CMakeFiles/rebuild_cache.dir

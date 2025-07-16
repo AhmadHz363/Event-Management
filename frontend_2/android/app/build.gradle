@@ -1,0 +1,41 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.senior.event"
+    compileSdkVersion 34
+    ndkVersion = "25.1.8937393"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+         jvmTarget = "17"
+    }
+    packagingOptions {
+        exclude 'META-INF/core-for-system-modules.jar'
+    }
+    defaultConfig {
+        applicationId = "com.senior.event"
+        minSdk = 23
+        targetSdk = 34
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+}
+
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+   
+}
+
+apply plugin: 'com.google.gms.google-services'
